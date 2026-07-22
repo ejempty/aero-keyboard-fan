@@ -10,6 +10,8 @@ A tiny, no-bloat tray app for **Gigabyte AERO / AORUS** laptops:
 It's a ~400-line Python script frozen into a single `KeyboardLight.exe`. No
 service, no background bloat — just a tray icon.
 
+<p align="center"><img src="docs/screenshot.png" alt="Keyboard Light app window" width="320"></p>
+
 > **Why this exists:** Gigabyte's own software (GiMATE / GIGABYTE Control
 > Center) is heavy, and on some machines the fan-control UI is hidden behind a
 > capability gate that never shows up. This app talks to the same firmware
