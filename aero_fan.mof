@@ -1,0 +1,47 @@
+// aero_fan.mof - clean-room WMI declaration for Gigabyte AERO/AORUS fan control.
+//
+// This registers just the handful of GB_WMIACPI_Set methods the Keyboard Light
+// app uses to drive the fans. The class GUID and method IDs are functional
+// identifiers exposed by the laptop's own ACPI firmware (_WDG); this text is an
+// independent, minimal re-declaration - it contains no vendor binary and ships
+// nothing extracted from Gigabyte's software.
+//
+// Register once (elevated):   mofcomp aero_fan.mof
+// After that, root\WMI GB_WMIACPI_Set is callable and persists across reboots,
+// independent of any Gigabyte software being installed.
+
+#pragma autorecover
+#pragma namespace("\\\\.\\root\\WMI")
+
+[WMI, Dynamic, Provider("WmiProv"), Locale("MS\\0x409"),
+ Description("Gigabyte ACPI-WMI setters (fan subset)"),
+ guid("{ABBC0F75-8EA1-11d1-00A0-C90629100000}")]
+class GB_WMIACPI_Set
+{
+    [key, read] string InstanceName;
+    [read] boolean Active;
+
+    [WmiMethodId(102), Implemented, read, write,
+     Description("Set current fan step index")]
+    void SetCurrentFanStep([in, WmiDataId(1)] uint8 Data);
+
+    [WmiMethodId(113), Implemented, read, write,
+     Description("Enable(1)/disable(0) the automatic fan governor")]
+    void SetAutoFanStatus([in, WmiDataId(1)] uint8 Data);
+
+    [WmiMethodId(107), Implemented, read, write,
+     Description("Fixed CPU-side fan duty (0-100)")]
+    void SetFixedFanSpeed([in, WmiDataId(1)] uint8 Data);
+
+    [WmiMethodId(71), Implemented, read, write,
+     Description("Fixed GPU-side fan duty (0-100)")]
+    void SetGPUFanDuty([in, WmiDataId(1)] uint8 Data);
+
+    [WmiMethodId(103), Implemented, read, write,
+     Description("Enable(1)/disable(0) manual step/fixed fan mode")]
+    void SetStepFanStatus([in, WmiDataId(1)] uint8 Data);
+
+    [WmiMethodId(106), Implemented, read, write,
+     Description("Lock(1)/release(0) the fixed fan duty")]
+    void SetFixedFanStatus([in, WmiDataId(1)] uint8 Data);
+};

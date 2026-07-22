@@ -1,0 +1,14 @@
+# Build artifacts
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+
+# Runtime / local
+config.json
+
+# Do NOT redistribute Gigabyte's proprietary files. Fan control uses the
+# clean-room aero_fan.mof instead (see README).
+acpimof.dll
+acpimof.bmf
