@@ -1,0 +1,11 @@
+=== AERO X16 GPU / MUX state (read-only) ===
+GetPEGorSG             : (0,)   (MUX/graphics mode (PEG=dGPU vs SG=switchable))
+GetPEG2orSG2           : (0,)   (secondary MUX/graphics mode)
+getSecondDisplay       : (0,)   (second display routing)
+GetNvPowerConfig       : ERROR <x_wmi: Unexpected COM Error (-2147352567, 'Exception occurred.', (0, 'SWbemObjectEx', 'Invalid object ', None, 0, -2147217393), None)>   (NVIDIA Dynamic Boost config)
+GetDynamicBoostStatus  : (0,)   (Dynamic Boost on/off)
+getGpuTemp1            : (47,)   (dGPU temp 1)
+getGpuTemp2            : (47,)   (dGPU temp 2)
+GetNvThermalTarget     : (0,)   (dGPU thermal target)
+  video: NVIDIA GeForce RTX 5060 Laptop GPU  (status OK)
+  video: AMD Radeon(TM) Graphics  (status OK)

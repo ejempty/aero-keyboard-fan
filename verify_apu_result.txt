@@ -1,0 +1,20 @@
+=== AERO X16 APU power-limit verification ===
+Power source: AC (plugged in)   Battery: 99%
+Note: on AC the battery-watt signal is 0; the throughput delta is the real proof.
+Logical cores to load: 16
+Calibrating workload...
+Sized work = 597,189,114 iters/core (~35s target)
+
+[1/2] Setting HIGH limit  fPPT/sPPT/SPL = 80/80/25 W ...
+      Running sustained all-core load (~35s)...
+      HIGH: 93.5s
+
+[2/2] Setting LOW limit   fPPT/sPPT/SPL = 30/30/15 W ...
+      Running sustained all-core load (~35s)...
+      LOW:  115.9s
+
+Restored safe Balanced profile (80/65/25 W).
+
+----- VERDICT -----
+Low-limit run was +24% slower than high-limit run.
+RESULT: WRITES WORK. Firmware honors SetApuParameter — the power modes are viable. Build it.
