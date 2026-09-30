@@ -44,4 +44,22 @@ class GB_WMIACPI_Set
     [WmiMethodId(106), Implemented, read, write,
      Description("Lock(1)/release(0) the fixed fan duty")]
     void SetFixedFanStatus([in, WmiDataId(1)] uint8 Data);
+
+    // -- APU power limits (Ryzen AI 7 350 / Krackan Point) -----------------
+    // Milliwatt limits enforced by the AMD SMU firmware. Data is uint32.
+    [WmiMethodId(243), Implemented, read, write,
+     Description("APU fast PPT limit (fPPT), milliwatts")]
+    void SetApuParameter1([in, WmiDataId(1)] uint32 Data);
+
+    [WmiMethodId(242), Implemented, read, write,
+     Description("APU slow PPT limit (sPPT), milliwatts")]
+    void SetApuParameter2([in, WmiDataId(1)] uint32 Data);
+
+    [WmiMethodId(241), Implemented, read, write,
+     Description("APU sustained power limit (SPL/STAPM), milliwatts")]
+    void SetApuParameter3([in, WmiDataId(1)] uint32 Data);
+
+    [WmiMethodId(81), Implemented, read, write,
+     Description("NVIDIA Dynamic Boost bias (1=toward dGPU, 0=off)")]
+    void SetNvPowerConfig([in, WmiDataId(1)] uint8 Data);
 };

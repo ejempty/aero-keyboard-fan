@@ -1,4 +1,4 @@
-# Builds KeyboardLight.exe (self-contained installer + app).
+# Builds KeyboardLight.exe (self-contained installer + app, displays as "Aero Control").
 # Requires: Python 3, and `pip install hid pystray pillow wmi pywin32 pyinstaller`.
 
 python -m PyInstaller --noconfirm --onefile --windowed `

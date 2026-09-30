@@ -32,12 +32,15 @@ if (Test-Path $exe) {
 $user = "$env:USERDOMAIN\$env:USERNAME"
 $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Highest
 $tasks = @(
-  @{ Name = 'AeroFanMax';    Arg = '--fan max' },
-  @{ Name = 'AeroFanNormal'; Arg = '--fan off' }
+  @{ Name = 'AeroFanMax';         Arg = '--fan max' },
+  @{ Name = 'AeroFanNormal';      Arg = '--fan off' },
+  @{ Name = 'AeroModeBattery';    Arg = '--applyfw battery' },
+  @{ Name = 'AeroModeBalanced';   Arg = '--applyfw balanced' },
+  @{ Name = 'AeroModePerformance';Arg = '--applyfw performance' }
 )
 foreach ($t in $tasks) {
   $a = New-ScheduledTaskAction -Execute $launch -Argument ($prefix + $t.Arg)
   Register-ScheduledTask -TaskName $t.Name -Action $a -Principal $principal -Force | Out-Null
   Write-Host ("registered task {0}" -f $t.Name)
 }
-Write-Host "Fan setup complete. The Max Fan button is ready."
+Write-Host "Setup complete. The Max Fan button and the Power modes are ready."
