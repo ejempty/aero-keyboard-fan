@@ -1510,6 +1510,7 @@ class App:
         self._last_pct = None          # last brightness seen (F5 snap-to-5)
         self._overlay = None           # fullscreen black cover, if showing
         self._overlay_at = 0.0         # when it went up (input debounce)
+        self._overlay_space_only = False  # Screen-off button: only Space wakes
         srow = tk.Frame(body)
         srow.pack(fill=tk.X, pady=(self.S(12), 0))
         tk.Label(srow, text="Screen").pack(side=tk.LEFT)
@@ -1524,7 +1525,8 @@ class App:
                             radius=6, font_size=9, bold=True)
         sdn.pack(side=tk.RIGHT, padx=(0, self.S(4)))
         self._round_btns += [sup, sdn]
-        soff = RoundedButton(body, text="Screen off", command=self.screen_black,
+        soff = RoundedButton(body, text="Screen off  (Space to wake)",
+                             command=lambda: self.screen_black(space_only=True),
                              scale=self.ui_scale, width=260)
         soff.pack(pady=(self.S(6), 0))
         self._round_btns.append(soff)
@@ -1752,6 +1754,12 @@ class App:
         Keep the readout in step, and treat 0% as 'screen off' no matter who
         caused it, so F5 all the way down raises the cover."""
         prev, self._last_pct = self._last_pct, pct
+        if self._overlay is not None and self._overlay_space_only:
+            # Only Space ends this cover. F6 or a power profile raising the
+            # level would light the backlight under it, so push it back to 0.
+            if pct > 0:
+                set_brightness(0)
+            return
         ours = brightness_is_ours(pct)
         if (not ours and pct == 0 and self._overlay is None
                 and prev is not None and prev > 5):
@@ -1780,7 +1788,7 @@ class App:
             self._screen_restore = None
             self.screen_black_off()
 
-    def screen_black(self):
+    def screen_black(self, space_only=False):
         """Cover every screen with black and drop brightness to 0, WITHOUT any
         power-state change. Nothing sleeps, nothing locks, nothing is suspended
         -- this is just a window. About as dark as an IPS panel gets while fully
@@ -1790,12 +1798,14 @@ class App:
         motion bindings are the fast path, but _levers_tick ALSO watches
         user_idle_ms() once a second and tears the overlay down on any input.
         That second path does not depend on Tk delivering an event, so the
-        overlay still goes away even if something steals focus."""
+        overlay still goes away even if something steals focus.
+
+        space_only (the Screen-off button): mouse, touchpad and every other key
+        are swallowed; only Space wakes. The idle watchdog is off for this mode,
+        so its independent path is _space_poll, which reads the GLOBAL key state
+        every 50 ms -- Space still works even if the cover has lost focus."""
         if self._overlay is not None:
             return
-        cur = get_brightness()
-        if cur is not None and cur > 0:
-            self._screen_restore = cur
         ov = tk.Toplevel(self.root)
         ov.overrideredirect(True)          # no title bar, no close button
         ov.configure(bg="black", cursor="none")
@@ -1804,15 +1814,40 @@ class App:
         g = ctypes.windll.user32.GetSystemMetrics
         vx, vy, vw, vh = g(76), g(77), g(78), g(79)   # SM_*VIRTUALSCREEN
         ov.geometry("%dx%d+%d+%d" % (vw, vh, vx, vy))
-        for seq in ("<Key>", "<Button>", "<Motion>"):
-            ov.bind(seq, self._overlay_event)
+        if space_only:
+            ov.bind("<KeyPress-space>", self._overlay_event)
+        else:
+            for seq in ("<Key>", "<Button>", "<Motion>"):
+                ov.bind(seq, self._overlay_event)
         self._overlay = ov
         self._overlay_at = time.monotonic()
+        self._overlay_space_only = space_only
         try:
             ov.focus_force()
         except Exception:
             pass
         set_brightness(0)
+        if space_only:
+            ctypes.windll.user32.GetAsyncKeyState(0x20)   # clear stale "was pressed"
+            self._space_poll(0)
+
+    def _space_poll(self, n):
+        """Focus-independent Space detector for the space-only cover. Bit 15 =
+        down now, bit 0 = pressed since last call (catches taps under 50 ms)."""
+        ov = self._overlay
+        if ov is None or not self._overlay_space_only:
+            return
+        st = ctypes.windll.user32.GetAsyncKeyState(0x20)
+        if (st & 0x8001) and time.monotonic() - self._overlay_at > 0.5:
+            self.screen_black_off()
+            return
+        if n % 20 == 0:                       # ~1 s: stay above anything new
+            try:
+                ov.attributes("-topmost", True)
+                ov.lift()
+            except Exception:
+                pass
+        self.root.after(50, self._space_poll, n + 1)
 
     def _overlay_event(self, _evt=None):
         # The click that opened it, and the pointer already sitting under the
@@ -1822,18 +1857,21 @@ class App:
         self.screen_black_off()
 
     def screen_black_off(self):
-        """Take the overlay down and restore brightness. Idempotent."""
+        """Take the overlay down and wake at 5% -- whatever woke it and however
+        it went dark -- so one more F5 (5 -> 0) goes straight back to dark.
+        Idempotent."""
         ov, self._overlay = self._overlay, None
+        self._overlay_space_only = False
         if ov is not None:
             try:
                 ov.destroy()
             except Exception:
                 pass
-        if self._screen_restore is not None:
-            set_brightness(self._screen_restore)
+        if ov is not None:
             self._screen_restore = None
+            set_brightness(5)
             try:
-                self._refresh_screen_lbl()
+                self.screen_lbl.config(text="5%")
             except Exception:
                 pass
 
@@ -2312,8 +2350,8 @@ class App:
     def reapply_after_resume(self, attempt=0):
         """Firmware falls back to its own rainbow effect after sleep; put our
         settings back. Rainbow mode recovers by itself on the next tick."""
-        if attempt == 0 and (self._overlay is not None
-                             or self._screen_restore is not None):
+        if attempt == 0 and not self._overlay_space_only and (
+                self._overlay is not None or self._screen_restore is not None):
             self.screen_black_off()
         if self.rainbow:
             return
@@ -2328,7 +2366,7 @@ class App:
         """Relays worker-thread results to the UI and fires the deferred
         refresh-rate switch only once the user's hands are still (>=1.5 s idle,
         or 15 s cap) -- the compositor stall then lands where nobody feels it."""
-        if (self._overlay is not None
+        if (self._overlay is not None and not self._overlay_space_only
                 and time.monotonic() - self._overlay_at > 1.5
                 and user_idle_ms() < 1200):
             # Independent of Tk event delivery -- the overlay always goes away.
